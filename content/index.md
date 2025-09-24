@@ -1,7 +1,3 @@
----
-title: Home
----
-
 # wisconsin
 
 A [Quartz](https://quartz.jzhao.xyz)-powered static site for organizing and presenting course materials from the
