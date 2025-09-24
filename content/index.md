@@ -1,8 +1,6 @@
 # wisconsin
 
-A [Quartz](https://quartz.jzhao.xyz)-powered static site for organizing and presenting course materials from the
-University of Wisconsin-Madison.
-
+A [Quartz](https://quartz.jzhao.xyz)-powered static site tuned for organizing and presenting course materials.
 ## Content
 
 I'm [James](https://twango.dev), and this is just a place  for me to organize my notes during my time at the [University of Wisconsin-Madison](https://wisc.edu). Here's a complete log of all the courses I've taken during my time as a student:
