@@ -24,4 +24,5 @@
 - [[fa24-asianam160/README|ASIAN AM 160]] - ASIAN AMERICAN HISTORY: MOVEMENT AND DISLOCATION
 - MATH 340 - ELEMENTARY MATRIX AND LINEAR ALGEBRA
 
-- [[cnc-1|CNC 1]], [[cnc-2|CNC 2]], [[cnc-3|CNC 3]] - Received full shop certification for CNC Mills at ECB
+- [[des-inv/README|DES INV]] - DESIGN AND INNOVATION
+	- Received full [[cnc-1]], [[cnc-2]], and [[cnc-3]] certification
