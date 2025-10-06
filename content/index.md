@@ -1,6 +1,7 @@
 # wisconsin
 
 ![Obsidian Badge](https://img.shields.io/badge/Obsidian-compatible-7C3AED?logo=obsidian)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/twangodev/wisconsin/build-and-deploy.yaml)
 ![GitHub License](https://img.shields.io/github/license/twangodev/wisconsin)
 
 
