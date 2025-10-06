@@ -1,5 +1,9 @@
 # wisconsin
 
+![Obsidian Badge](https://img.shields.io/badge/Obsidian-compatible-7C3AED?logo=obsidian)
+![GitHub License](https://img.shields.io/github/license/twangodev/wisconsin)
+
+
 A [Quartz](https://quartz.jzhao.xyz)-powered static site tuned for organizing and presenting course materials.
 ## Content
 
