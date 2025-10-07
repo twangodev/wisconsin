@@ -29,7 +29,7 @@ through Git and automated deployments for web access. This creates a seamless wo
 and sharing.
 
 > [!TIP]
-> This setup excels for CS students, as you can keep notes and code in one monolith repository docs alongside actual implementations. Works seamlessly with AI assistants (Claude Code, Cursor, Windsurf) for better context.
+> This setup excels for CS students - keep notes and code together in one repository. Works seamlessly with AI assistants (Claude Code, Cursor, Windsurf) that benefit from having full project context.
 
 > [!WARNING]
 > **Academic Compliance**: All course materials remain in private submodules to comply with academic policies. This
