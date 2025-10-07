@@ -10,6 +10,9 @@
     A <a href="https://quartz.jzhao.xyz">Quartz</a>-powered static site tuned for organizing and presenting course materials.
 </p>
 
+> [!NOTE]
+> **Disclaimer**: This is a personal project and is not affiliated with, endorsed by, or officially connected to the University of Wisconsin-Madison or the University of Wisconsin System.
+
 ## Content
 
 I'm [James](https://twango.dev), and this is just a place  for me to organize my notes during my time at the [University of Wisconsin-Madison](https://wisc.edu). Here's a complete log of all the courses I've taken during my time as a student:
