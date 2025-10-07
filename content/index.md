@@ -1,11 +1,15 @@
 # wisconsin
 
-![Obsidian Badge](https://img.shields.io/badge/Obsidian-compatible-7C3AED?logo=obsidian)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/twangodev/wisconsin/build-and-deploy.yaml)
-![GitHub License](https://img.shields.io/github/license/twangodev/wisconsin)
+<div class="badges">
+    <img src="https://img.shields.io/badge/Obsidian-compatible-7C3AED?logo=obsidian" alt="Obsidian Badge" height="20">
+    <img src="https://img.shields.io/github/actions/workflow/status/twangodev/wisconsin/build-and-deploy.yaml" alt="GitHub Actions Workflow Status" height="20">
+    <img src="https://img.shields.io/github/license/twangodev/wisconsin" alt="GitHub License" height="20">
+</div>
 
+<p>
+    A <a href="https://quartz.jzhao.xyz">Quartz</a>-powered static site tuned for organizing and presenting course materials.
+</p>
 
-A [Quartz](https://quartz.jzhao.xyz)-powered static site tuned for organizing and presenting course materials.
 ## Content
 
 I'm [James](https://twango.dev), and this is just a place  for me to organize my notes during my time at the [University of Wisconsin-Madison](https://wisc.edu). Here's a complete log of all the courses I've taken during my time as a student:
