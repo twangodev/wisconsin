@@ -29,7 +29,7 @@ through Git and automated deployments for web access. This creates a seamless wo
 and sharing.
 
 > [!TIP]
-> **Great for CS Students**: This setup excels for computer science coursework—keep notes, assignments, and code in one place. Your markdown files can reference implementations while actual projects live alongside them. This organization also works seamlessly with AI coding assistants like Claude Code, Cursor, or Windsurf, giving them full context of both your documentation and code for better assistance.
+> This setup excels for CS students, as you can keep notes and code in one monolith repository docs alongside actual implementations. Works seamlessly with AI assistants (Claude Code, Cursor, Windsurf) for better context.
 
 > [!WARNING]
 > **Academic Compliance**: All course materials remain in private submodules to comply with academic policies. This
