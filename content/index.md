@@ -46,6 +46,7 @@ This Quartz instance has been enhanced with several custom features tailored for
 - **Centered Math Equations**: KaTeX display equations are automatically centered for better readability
 - **Consistent Image Layout**: Article images display at 60% width with balanced margins
 - **Improved Frontmatter Processing**: Intelligent title fallback system
+- **Multi-threaded Parsing**: Dynamically uses all available CPU cores for faster build times
 
 ## Quick Start
 
