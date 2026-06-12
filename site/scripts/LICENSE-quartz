@@ -1,6 +1,10 @@
+Portions of the content pipeline in this directory (slug.ts, ofm.ts,
+lastmod.ts, autotag.ts and the link-resolution logic) are derived from
+Quartz v4 (https://github.com/jackyzha0/quartz), used under the MIT License:
+
 MIT License
 
-Copyright (c) 2026 James Ding
+Copyright (c) 2021 jackyzha0
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
