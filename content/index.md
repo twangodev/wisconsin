@@ -2,12 +2,12 @@
 
 <div class="badges">
     <img src="https://img.shields.io/badge/Obsidian-compatible-7C3AED?logo=obsidian" alt="Obsidian Badge" height="20">
-    <img src="https://img.shields.io/github/actions/workflow/status/twangodev/wisconsin/build-and-deploy.yaml" alt="GitHub Actions Workflow Status" height="20">
+    <img src="https://img.shields.io/github/actions/workflow/status/twangodev/wisconsin/deploy-site.yaml" alt="GitHub Actions Workflow Status" height="20">
     <img src="https://img.shields.io/github/license/twangodev/wisconsin" alt="GitHub License" height="20">
 </div>
 
 <p>
-    A <a href="https://quartz.jzhao.xyz">Quartz</a>-powered static site tuned for organizing and presenting course materials.
+    A custom <a href="https://kit.svelte.dev">SvelteKit 2</a> site (Svelte 5 / Tailwind 4 stack, deployed to Cloudflare Workers) for organizing and presenting course materials. Site config lives in <code>site/</code>.
 </p>
 
 > [!NOTE]
@@ -38,7 +38,7 @@ and sharing.
 
 ### Bonus Features
 
-This Quartz instance has been enhanced with several custom features tailored for students and course content management:
+This site has been enhanced with several custom features tailored for students and course content management:
 
 - **Automatic Tagging System**: Intelligently generates tags from directory structure (course codes, terms, subjects)
 - **Scope-Based Tag Application**: Course tags apply globally while term/subject tags target immediate content only
@@ -53,11 +53,8 @@ This Quartz instance has been enhanced with several custom features tailored for
 ### Development
 
 ```bash
-# Install dependencies
-npm install
-
 # Run development server
-npm run dev
+cd site && bun run dev
 ```
 
 ## Use as Template
@@ -124,15 +121,15 @@ Benefits of this approach:
 
 ### Deployment
 
-Quartz generates static files in `public/` that can be deployed anywhere:
+The site builds to a fully prerendered static output deployable via Cloudflare Workers:
 
 ```bash
-npm run build
+cd site && bun run build
 ```
 
-**Hosting Options**: [GitHub Pages](https://pages.github.com/), [Cloudflare Pages](https://pages.cloudflare.com/), [Netlify](https://www.netlify.com/), [Vercel](https://vercel.com/), [AWS S3](https://aws.amazon.com/s3/)/[Cloudflare R2](https://www.cloudflare.com/developer-platform/r2/), the [CSL](https://csl.cs.wisc.edu/) or any static file server.
+**Hosting Options**: [Cloudflare Workers](https://workers.cloudflare.com/), [Cloudflare Pages](https://pages.cloudflare.com/), [Netlify](https://www.netlify.com/), [Vercel](https://vercel.com/), [AWS S3](https://aws.amazon.com/s3/)/[Cloudflare R2](https://www.cloudflare.com/developer-platform/r2/), the [CSL](https://csl.cs.wisc.edu/) or any static file server.
 
-**Access Control**: Since Quartz outputs static HTML, implement authentication at the infrastructure level:
+**Access Control**: Since the site outputs static HTML, implement authentication at the infrastructure level:
 - [Cloudflare Zero Trust](https://www.cloudflare.com/zero-trust/), [Authentik](https://goauthentik.io/), or [Pangolin](https://digpangolin.com/) for identity-based access
 - Basic Auth via web server configuration
 - Edge functions for custom authorization logic
@@ -141,7 +138,7 @@ This approach keeps your site fast while protecting sensitive course materials.
 
 ### Customize (Optional)
 
-Update `quartz.config.ts` to change:
+Update the config in `site/` to change:
 - Site title and description
 - Author information
 - Base URL for deployment
