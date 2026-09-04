@@ -2,7 +2,7 @@
 
 <div class="badges">
     <img src="https://img.shields.io/badge/Obsidian-compatible-7C3AED?logo=obsidian" alt="Obsidian Badge" height="20">
-    <img src="https://img.shields.io/github/actions/workflow/status/twangodev/wisconsin/deploy-site.yaml" alt="GitHub Actions Workflow Status" height="20">
+    <img src="https://img.shields.io/github/actions/workflow/status/twangodev/wisconsin/svelte.yml" alt="GitHub Actions Workflow Status" height="20">
     <img src="https://img.shields.io/github/license/twangodev/wisconsin" alt="GitHub License" height="20">
 </div>
 
