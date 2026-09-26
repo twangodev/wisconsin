@@ -22,7 +22,7 @@ I'm [James](https://twango.dev), and this is just a place for me to organize my 
 ## A Technical Glance
 
 This repository contains the framework and configuration for generating a static documentation site deployed
-at [wisconsin.twango.dev](https://wisconsin.twango.dev).
+at `wisconsin.twango.dev`.
 
 The setup is **Obsidian-compatible**, allowing you to edit notes locally in Obsidian while maintaining version control
 through Git and automated deployments for web access. This creates a seamless workflow for note-taking, version control,
