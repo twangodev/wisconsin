@@ -8,6 +8,7 @@
 
 My course notes from UW–Madison. By [James](https://twango.dev).
 
+<!-- check-links-ignore-next-line -->
 Browse at [wisconsin.twango.dev](https://wisconsin.twango.dev), or open `content/` in Obsidian.
 
 ## Courses
