@@ -8,3 +8,5 @@ replit.nix
 
 .idea/
 .venv/
+
+.twiki/

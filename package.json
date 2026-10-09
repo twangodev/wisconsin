@@ -1,0 +1,17 @@
+{
+  "name": "wisconsin",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.2",
+  "scripts": {
+    "twiki": "twiki",
+    "dev": "twiki dev",
+    "check": "twiki check",
+    "build": "twiki build --target cloudflare",
+    "preview": "twiki preview",
+    "deploy": "twiki deploy"
+  },
+  "devDependencies": {
+    "@twango/twiki": "0.1.1"
+  }
+}
