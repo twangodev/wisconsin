@@ -1,0 +1,158 @@
+name: Twiki
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  FORCE_COLOR: "3"
+
+jobs:
+  check:
+    concurrency:
+      group: twiki-check-${{ github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - &configure-submodules
+        run: git config --global submodule.fetchJobs 8
+      - &checkout-content
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+      - &setup-bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - &bun-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: twiki-bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: twiki-bun-${{ runner.os }}-${{ runner.arch }}-
+      - &install-dependencies
+        run: bun install --frozen-lockfile
+      - &prepare-engine
+        run: bun run twiki prepare
+      - &restore-compiler-cache
+        name: Restore encrypted compiler data
+        id: compiler-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .twiki/site/build/generated/compiler-cache.gpg
+          key: twiki-compiler-encrypted-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: twiki-compiler-encrypted-v1-${{ runner.os }}-${{ runner.arch }}-
+      - &decrypt-compiler-cache
+        name: Decrypt compiler data
+        env: &cache-encryption
+          BUILD_CACHE_KEY: ${{ secrets.BUILD_CACHE_KEY }}
+        run: bun run twiki exec -- tooling/cache.ts restore
+      - &restore-products
+        name: Restore encrypted build products
+        uses: ./.github/actions/product-cache
+        continue-on-error: true
+        with:
+          mode: restore
+          transport: bundle
+        env: *cache-encryption
+      - name: Install worksheet renderer
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 6
+        run: &install-r-command |
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends r-base-core r-cran-knitr r-cran-car
+      - name: Install browser dependencies
+        working-directory: .twiki/site
+        run: bunx playwright install --with-deps chromium
+      - name: Install Lychee 0.24.2
+        run: |
+          mkdir -p .twiki/site/build/tools
+          curl -fsSL https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz -o "$RUNNER_TEMP/lychee.tar.gz"
+          tar -xzf "$RUNNER_TEMP/lychee.tar.gz" --strip-components=1 -C .twiki/site/build/tools lychee-x86_64-unknown-linux-gnu/lychee
+      - run: bun run check
+      - name: Build the consumer on pull requests
+        if: github.event_name == 'pull_request'
+        run: bun run build
+
+  build-and-deploy:
+    needs: check
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    concurrency:
+      group: svelte-build-and-deploy-refs/heads/main
+      cancel-in-progress: false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://wisconsin.twango.dev
+    env:
+      WISCONSIN_R_REQUIRE_PROFILE: "1"
+    steps:
+      - name: Start deployment timer
+        run: echo "DEPLOYMENT_STARTED_AT=$(date +%s%3N)" >> "$GITHUB_ENV"
+      - *configure-submodules
+      - *checkout-content
+      - *setup-bun
+      - *bun-cache
+      - *install-dependencies
+      - *prepare-engine
+      - *restore-compiler-cache
+      - *decrypt-compiler-cache
+      - name: Provision pinned worksheet fonts
+        timeout-minutes: 6
+        run: |
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends fonts-mathjax=2.7.9+dfsg-1 fonts-glyphicons-halflings=1.009~3.4.1+dfsg-3+deb12u1build0.24.04.1
+      - *restore-products
+      - name: Verify restored worksheet coverage
+        id: worksheets
+        run: bun run twiki exec -- tooling/r-cache.ts preflight --github-output
+      - name: Install missing worksheet renderer
+        if: steps.worksheets.outputs.requiresR != 'false'
+        timeout-minutes: 6
+        run: *install-r-command
+      - name: Enforce verified worksheet cache reuse
+        if: steps.worksheets.outputs.requiresR == 'false'
+        run: echo "WISCONSIN_R_CACHE_ONLY=1" >> "$GITHUB_ENV"
+      - run: bun run build
+      - name: Apply existing database migrations
+        run: bun run twiki exec -- tooling/wrangler.ts d1 migrations apply wisconsin --remote
+        env: &cloudflare-credentials
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Deploy Worker and content
+        run: bun run deploy
+        env: *cloudflare-credentials
+      - name: Verify deployed content version
+        run: bun run twiki exec -- tooling/verify-deployment.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOYMENT_ORIGIN: https://wisconsin.twango.dev
+      - name: Save encrypted build products
+        uses: ./.github/actions/product-cache
+        continue-on-error: true
+        with:
+          mode: save
+          transport: bundle
+        env: *cache-encryption
+      - name: Encrypt current compiler data
+        id: encrypted-cache
+        continue-on-error: true
+        env: *cache-encryption
+        run: bun run twiki exec -- tooling/cache.ts save
+      - name: Save encrypted compiler data
+        if: steps.encrypted-cache.outputs.ready == 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: .twiki/site/build/generated/compiler-cache.gpg
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}

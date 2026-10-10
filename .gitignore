@@ -1,0 +1,12 @@
+.DS_Store
+.gitignore
+node_modules
+.obsidian
+private/
+.replit
+replit.nix
+
+.idea/
+.venv/
+
+.twiki/

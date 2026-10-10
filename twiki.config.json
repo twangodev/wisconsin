@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "contentDir": "content",
+  "discovery": "git",
+  "publication": "policies",
+  "site": {
+    "name": "wisconsin",
+    "url": "https://wisconsin.twango.dev",
+    "title": "wisconsin",
+    "description": "Course notes, projects, and reference material from UW–Madison.",
+    "author": {
+      "name": "James Ding",
+      "url": "https://twango.dev",
+      "github": "https://github.com/twangodev",
+      "email": "james@twango.dev"
+    },
+    "locale": "en_US",
+    "language": "en"
+  },
+  "cloudflare": {
+    "name": "wisconsin",
+    "compatibility_date": "2026-06-07",
+    "compatibility_flags": ["nodejs_compat"],
+    "main": "build/.svelte-kit/worker.js",
+    "vars": {
+      "ORIGIN": "https://wisconsin.twango.dev",
+      "OWNER_GITHUB_ID": "48845764",
+      "GITHUB_CLIENT_ID": "Ov23liFBHrg7CX5yA0ko"
+    },
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "wisconsin",
+        "database_id": "adbf2cf8-5c57-497b-bfae-8ffd82042d41",
+        "migrations_dir": "migrations"
+      }
+    ],
+    "assets": {
+      "binding": "ASSETS",
+      "directory": "build/.svelte-kit/cloudflare",
+      "html_handling": "drop-trailing-slash",
+      "not_found_handling": "404-page",
+      "run_worker_first": true
+    },
+    "workers_dev": false,
+    "preview_urls": false,
+    "routes": [
+      {
+        "pattern": "wisconsin.twango.dev",
+        "custom_domain": true
+      }
+    ]
+  },
+  "analytics": {
+    "siteId": "4",
+    "endpoint": "https://rybbit.twango.dev/api"
+  }
+}
