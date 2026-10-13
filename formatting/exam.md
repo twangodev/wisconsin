@@ -61,6 +61,10 @@ During a system call, the process's registers are saved in the PCB.
   is what makes self-testing work. Bold the correct answer, then explain,
   including why the wrong options are wrong.
 - `---` between questions.
+- Distinguish instructor keys, student responses, and newly worked study answers.
+  If printed interactive answers are unavailable, a worked answer may be added
+  only with explicit study-answer provenance. Preserve source errata alongside
+  corrections; never imply the corrected answer was printed in the original.
 
 ## Linking
 

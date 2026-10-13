@@ -73,3 +73,20 @@ identify it as inferred without reproducing the filename.
    repair flat heading hierarchy.
 4. Wire it into the graph: link from the course README and related notes.
 5. Review against the original, then delete the binary.
+
+### Review acceptance
+
+- Compare changed mathematics, question wording, options, and diagram
+  relationships against the source. A successful math render or an existing
+  link target does not establish correctness.
+- When the source contains an error, distinguish the original claim from the
+  correction. Keep student work, instructor keys, and newly worked answers
+  identifiable as such.
+- Consolidate generic conversion history in private review reports. Retain
+  attribution and specific unresolved caveats beside the affected passage;
+  removing boilerplate must not imply that an unreviewed document was verified.
+- Verify the actual destination of every new or changed link. Qualify ambiguous
+  wikilinks with the course path so a same-named note in another course cannot
+  receive the link.
+- Record the source pages and coverage reviewed in the private report. Review
+  long documents in sections and retain originals while any review remains open.
