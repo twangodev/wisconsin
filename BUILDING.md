@@ -23,3 +23,18 @@ validate the resulting publication before deploying.
 
 The content homepage remains `content/index.md`. Commit course edits in their
 submodule before updating this repository's pointer.
+
+For a read-only content audit, run:
+
+```sh
+bun tools/audit-content.mjs
+# Limit the report to one course:
+bun tools/audit-content.mjs private/content-quality/math240.json sp25-math240
+```
+
+JSON inventories and their filterable HTML reports stay in ignored
+`private/content-quality/` because they contain excerpts
+of private course material. The audit checks structure, mathematics rendering,
+link existence, README reachability, and differences between filesystem and
+publishing-engine link resolution. Review candidates require source comparison;
+passing a render check does not certify mathematical correctness or completeness.
