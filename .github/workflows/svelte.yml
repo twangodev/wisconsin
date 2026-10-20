@@ -1,4 +1,4 @@
-name: Twiki
+name: Svelte
 
 on:
   push:
