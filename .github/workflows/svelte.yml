@@ -14,21 +14,15 @@ env:
   FORCE_COLOR: "3"
 
 jobs:
-  check:
+  types:
     concurrency:
-      group: twiki-check-${{ github.ref }}
+      group: twiki-types-${{ github.ref }}
       cancel-in-progress: true
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
-      - &configure-submodules
-        run: git config --global submodule.fetchJobs 8
-      - &checkout-content
+      - &checkout-engine
         uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          submodules: recursive
-          token: ${{ secrets.PAT_TOKEN || github.token }}
       - &setup-bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -43,116 +37,198 @@ jobs:
         run: bun install --frozen-lockfile
       - &prepare-engine
         run: bun run twiki prepare
-      - &restore-compiler-cache
-        name: Restore encrypted compiler data
-        id: compiler-cache
-        uses: actions/cache/restore@v6
+      - name: Check application and Worker types
+        env:
+          TWIKI_SKIP_CONTENT: "1"
+        run: bun run twiki exec -- run check:types
+
+  links:
+    concurrency:
+      group: twiki-links-${{ github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - &configure-submodules
+        run: git config --global submodule.fetchJobs 8
+      - &checkout-content
+        uses: actions/checkout@v7
         with:
-          path: .twiki/site/build/generated/compiler-cache.gpg
-          key: twiki-compiler-encrypted-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: twiki-compiler-encrypted-v1-${{ runner.os }}-${{ runner.arch }}-
-      - &decrypt-compiler-cache
-        name: Decrypt compiler data
-        env: &cache-encryption
-          BUILD_CACHE_KEY: ${{ secrets.BUILD_CACHE_KEY }}
-        run: bun run twiki exec -- tooling/cache.ts restore
-      - &restore-products
-        name: Restore encrypted build products
-        uses: ./.github/actions/product-cache
-        continue-on-error: true
-        with:
-          mode: restore
-          transport: bundle
-        env: *cache-encryption
-      - name: Install worksheet renderer
-        if: github.event_name == 'pull_request'
-        timeout-minutes: 6
-        run: &install-r-command |
-          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends r-base-core r-cran-knitr r-cran-car
-      - name: Install browser dependencies
-        working-directory: .twiki/site
-        run: bunx playwright install --with-deps chromium
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+      - *setup-bun
+      - *bun-cache
+      - *install-dependencies
+      - *prepare-engine
       - name: Install Lychee 0.24.2
         run: |
           mkdir -p .twiki/site/build/tools
           curl -fsSL https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz -o "$RUNNER_TEMP/lychee.tar.gz"
           tar -xzf "$RUNNER_TEMP/lychee.tar.gz" --strip-components=1 -C .twiki/site/build/tools lychee-x86_64-unknown-linux-gnu/lychee
-      - run: bun run check
-      - name: Build the consumer on pull requests
-        if: github.event_name == 'pull_request'
-        run: bun run build
+      - name: Check wikilink conventions and destinations
+        run: bun run twiki exec -- run --sequential --no-exit-on-error check:links check:targets
 
-  build-and-deploy:
-    needs: check
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+  diagrams:
     concurrency:
-      group: svelte-build-and-deploy-refs/heads/main
-      cancel-in-progress: false
+      group: twiki-diagrams-${{ github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    environment:
-      name: production
-      url: https://wisconsin.twango.dev
-    env:
-      WISCONSIN_R_REQUIRE_PROFILE: "1"
+    timeout-minutes: 10
     steps:
-      - name: Start deployment timer
-        run: echo "DEPLOYMENT_STARTED_AT=$(date +%s%3N)" >> "$GITHUB_ENV"
       - *configure-submodules
       - *checkout-content
       - *setup-bun
       - *bun-cache
       - *install-dependencies
       - *prepare-engine
-      - *restore-compiler-cache
-      - *decrypt-compiler-cache
+      - name: Install browser dependencies
+        working-directory: .twiki/site
+        run: bunx playwright install --with-deps chromium
+      - name: Check math and diagram rendering
+        run: bun run twiki exec -- run check:diagrams
+
+  build:
+    concurrency:
+      group: twiki-build-${{ github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
+      release-artifact: ${{ steps.release-upload.outputs.artifact-id }}
+    env:
+      R_REQUIRE_PROFILE: "1"
+    steps:
+      - *configure-submodules
+      - *checkout-content
+      - *setup-bun
+      - *bun-cache
+      - *install-dependencies
+      - *prepare-engine
+      - name: Restore encrypted compiler data
+        uses: actions/cache/restore@v6
+        with:
+          path: .twiki/site/build/generated/compiler-cache.gpg
+          key: twiki-compiler-encrypted-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: twiki-compiler-encrypted-v1-${{ runner.os }}-${{ runner.arch }}-
+      - name: Decrypt compiler data
+        env: &cache-encryption
+          BUILD_CACHE_KEY: ${{ secrets.BUILD_CACHE_KEY }}
+        run: bun run twiki exec -- tooling/cache.ts restore
       - name: Provision pinned worksheet fonts
         timeout-minutes: 6
         run: |
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends fonts-mathjax=2.7.9+dfsg-1 fonts-glyphicons-halflings=1.009~3.4.1+dfsg-3+deb12u1build0.24.04.1
-      - *restore-products
       - name: Verify restored worksheet coverage
         id: worksheets
         run: bun run twiki exec -- tooling/r-cache.ts preflight --github-output
       - name: Install missing worksheet renderer
         if: steps.worksheets.outputs.requiresR != 'false'
         timeout-minutes: 6
-        run: *install-r-command
+        run: |
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends r-base-core r-cran-knitr r-cran-car
       - name: Enforce verified worksheet cache reuse
         if: steps.worksheets.outputs.requiresR == 'false'
-        run: echo "WISCONSIN_R_CACHE_ONLY=1" >> "$GITHUB_ENV"
+        run: echo "R_CACHE_ONLY=1" >> "$GITHUB_ENV"
       - run: bun run build
-      - name: Apply existing database migrations
-        run: bun run twiki exec -- tooling/wrangler.ts d1 migrations apply wisconsin --remote
-        env: &cloudflare-credentials
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-      - name: Deploy Worker and content
-        run: bun run deploy
-        env: *cloudflare-credentials
-      - name: Verify deployed content version
-        run: bun run twiki exec -- tooling/verify-deployment.ts
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          DEPLOYMENT_ORIGIN: https://wisconsin.twango.dev
-      - name: Save encrypted build products
-        uses: ./.github/actions/product-cache
-        continue-on-error: true
-        with:
-          mode: save
-          transport: bundle
+      - name: Encrypt the completed release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env: *cache-encryption
-      - name: Encrypt current compiler data
+        run: bun run twiki exec -- tooling/release-artifact.ts pack "$RUNNER_TEMP/release.enc"
+      - name: Upload encrypted release
+        id: release-upload
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: twiki-release-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release.enc
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Encrypt compiler cache
         id: encrypted-cache
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         continue-on-error: true
         env: *cache-encryption
         run: bun run twiki exec -- tooling/cache.ts save
-      - name: Save encrypted compiler data
+      - name: Save compiler cache
         if: steps.encrypted-cache.outputs.ready == 'true'
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
           path: .twiki/site/build/generated/compiler-cache.gpg
-          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
+          key: twiki-compiler-encrypted-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+  # Preserve the existing required check name while collecting every lane.
+  check:
+    if: always()
+    needs: [types, links, diagrams, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require all checks
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            test "$result" = success || exit 1
+          done
+
+  deploy:
+    needs: [check, build]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    concurrency:
+      group: svelte-build-and-deploy-refs/heads/main
+      cancel-in-progress: false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://wisconsin.twango.dev
+    steps:
+      - *checkout-engine
+      - *setup-bun
+      - *bun-cache
+      - *install-dependencies
+      - *prepare-engine
+      - name: Download the completed release
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.build.outputs.release-artifact }}
+          path: ${{ runner.temp }}/release
+      - name: Authenticate and restore the release
+        env:
+          BUILD_CACHE_KEY: ${{ secrets.BUILD_CACHE_KEY }}
+          ARTIFACT_RUN_ATTEMPT: ${{ needs.build.outputs.artifact-attempt }}
+        run: bun run twiki exec -- tooling/release-artifact.ts unpack "$RUNNER_TEMP/release/release.enc"
+      - name: Check that this commit is still current
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          if [ "$current_sha" = "$GITHUB_SHA" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping superseded release $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Apply existing database migrations
+        if: steps.current.outputs.ready == 'true'
+        run: bun run twiki exec -- tooling/wrangler.ts d1 migrations apply wisconsin --remote
+        env: &cloudflare-credentials
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Deploy Worker and content
+        if: steps.current.outputs.ready == 'true'
+        run: bun run deploy
+        env: *cloudflare-credentials
+      - name: Verify deployed content version
+        if: steps.current.outputs.ready == 'true'
+        run: bun run twiki exec -- tooling/verify-deployment.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOYMENT_ORIGIN: https://wisconsin.twango.dev

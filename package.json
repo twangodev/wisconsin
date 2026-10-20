@@ -7,12 +7,12 @@
     "twiki": "twiki",
     "dev": "twiki dev",
     "dev:host": "twiki dev --host 127.0.0.1",
-    "check": "twiki check",
+    "check": "TWIKI_SKIP_CONTENT=1 twiki check",
     "build": "twiki build --target cloudflare",
     "preview": "twiki preview",
     "deploy": "twiki deploy"
   },
   "devDependencies": {
-    "@twango/twiki": "0.1.1"
+    "@twango/twiki": "0.5.0"
   }
 }
