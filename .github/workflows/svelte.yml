@@ -232,7 +232,10 @@ jobs:
           bun -e '
             const expected = await Bun.file(".twiki/site/build/.svelte-kit/cloudflare/_content/current.json").json();
             for (let attempt = 0; attempt < 12; attempt++) {
-              const response = await fetch("https://wisconsin.twango.dev", { cache: "no-store" });
+              const response = await fetch(`https://wisconsin.twango.dev/?deployment=${process.env.GITHUB_SHA}`, {
+                headers: { Accept: "text/html", "Cache-Control": "no-cache" }
+              });
+              console.log({ status: response.status, content: response.headers.get("X-Wisconsin-Content-Version"), application: response.headers.get("X-Wisconsin-Application-Version"), expected });
               if (response.ok &&
                   response.headers.get("X-Wisconsin-Content-Version") === expected.snapshots.public &&
                   response.headers.get("X-Wisconsin-Application-Version") === expected.applicationVersion)
