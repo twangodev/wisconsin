@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
 
 env:
   FORCE_COLOR: "3"
@@ -21,8 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - &checkout-engine
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
       - &setup-bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -89,14 +87,15 @@ jobs:
         run: bun run twiki exec -- run check:diagrams
 
   build:
+    name: Build and deploy
+    needs: [types, links, diagrams]
     concurrency:
-      group: twiki-build-${{ github.ref }}
-      cancel-in-progress: true
+      group: svelte-build-and-deploy-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    outputs:
-      artifact-attempt: ${{ github.run_attempt }}
-      release-artifact: ${{ steps.release-upload.outputs.artifact-id }}
+    timeout-minutes: 40
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'validation' }}
     env:
       R_REQUIRE_PROFILE: "1"
     steps:
@@ -134,20 +133,29 @@ jobs:
         if: steps.worksheets.outputs.requiresR == 'false'
         run: echo "R_CACHE_ONLY=1" >> "$GITHUB_ENV"
       - run: bun run build
-      - name: Encrypt the completed release
+      - name: Check that this commit is still current
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        env: *cache-encryption
-        run: bun run twiki exec -- tooling/release-artifact.ts pack "$RUNNER_TEMP/release.enc"
-      - name: Upload encrypted release
-        id: release-upload
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v7
-        with:
-          name: twiki-release-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/release.enc
-          compression-level: 0
-          retention-days: 1
-          if-no-files-found: error
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          if [ "$current_sha" = "$GITHUB_SHA" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping superseded release $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Apply existing database migrations
+        if: steps.current.outputs.ready == 'true'
+        run: bun run twiki exec -- tooling/wrangler.ts d1 migrations apply wisconsin --remote
+        env: &cloudflare-credentials
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Deploy Worker and content
+        if: steps.current.outputs.ready == 'true'
+        run: bun run deploy
+        env: *cloudflare-credentials
       - name: Encrypt compiler cache
         id: encrypted-cache
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
@@ -176,53 +184,3 @@ jobs:
           for result in $RESULTS; do
             test "$result" = success || exit 1
           done
-
-  deploy:
-    needs: [check, build]
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    concurrency:
-      group: svelte-build-and-deploy-refs/heads/main
-      cancel-in-progress: false
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    environment:
-      name: production
-      url: https://wisconsin.twango.dev
-    steps:
-      - *checkout-engine
-      - *setup-bun
-      - *bun-cache
-      - *install-dependencies
-      - *prepare-engine
-      - name: Download the completed release
-        uses: actions/download-artifact@v8
-        with:
-          artifact-ids: ${{ needs.build.outputs.release-artifact }}
-          path: ${{ runner.temp }}/release
-      - name: Authenticate and restore the release
-        env:
-          BUILD_CACHE_KEY: ${{ secrets.BUILD_CACHE_KEY }}
-          ARTIFACT_RUN_ATTEMPT: ${{ needs.build.outputs.artifact-attempt }}
-        run: bun run twiki exec -- tooling/release-artifact.ts unpack "$RUNNER_TEMP/release/release.enc"
-      - name: Check that this commit is still current
-        id: current
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          current_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
-          if [ "$current_sha" = "$GITHUB_SHA" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Skipping superseded release $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Apply existing database migrations
-        if: steps.current.outputs.ready == 'true'
-        run: bun run twiki exec -- tooling/wrangler.ts d1 migrations apply wisconsin --remote
-        env: &cloudflare-credentials
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-      - name: Deploy Worker and content
-        if: steps.current.outputs.ready == 'true'
-        run: bun run deploy
-        env: *cloudflare-credentials
