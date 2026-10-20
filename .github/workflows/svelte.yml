@@ -228,7 +228,16 @@ jobs:
         env: *cloudflare-credentials
       - name: Verify deployed content version
         if: steps.current.outputs.ready == 'true'
-        run: bun run twiki exec -- tooling/verify-deployment.ts
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          DEPLOYMENT_ORIGIN: https://wisconsin.twango.dev
+        run: |
+          bun -e '
+            const expected = await Bun.file(".twiki/site/build/.svelte-kit/cloudflare/_content/current.json").json();
+            for (let attempt = 0; attempt < 12; attempt++) {
+              const response = await fetch("https://wisconsin.twango.dev", { cache: "no-store" });
+              if (response.ok &&
+                  response.headers.get("X-Wisconsin-Content-Version") === expected.snapshots.public &&
+                  response.headers.get("X-Wisconsin-Application-Version") === expected.applicationVersion)
+                process.exit(0);
+              await Bun.sleep(5000);
+            }
+            throw new Error("Deployed content/application versions do not match the release");
+          '
