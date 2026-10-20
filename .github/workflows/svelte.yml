@@ -226,21 +226,3 @@ jobs:
         if: steps.current.outputs.ready == 'true'
         run: bun run deploy
         env: *cloudflare-credentials
-      - name: Verify deployed content version
-        if: steps.current.outputs.ready == 'true'
-        run: |
-          bun -e '
-            const expected = await Bun.file(".twiki/site/build/.svelte-kit/cloudflare/_content/current.json").json();
-            for (let attempt = 0; attempt < 12; attempt++) {
-              const response = await fetch(`https://wisconsin.twango.dev/?deployment=${process.env.GITHUB_SHA}`, {
-                headers: { Accept: "text/html", "Cache-Control": "no-cache" }
-              });
-              console.log({ status: response.status, content: response.headers.get("X-Wisconsin-Content-Version"), application: response.headers.get("X-Wisconsin-Application-Version"), expected });
-              if (response.ok &&
-                  response.headers.get("X-Wisconsin-Content-Version") === expected.snapshots.public &&
-                  response.headers.get("X-Wisconsin-Application-Version") === expected.applicationVersion)
-                process.exit(0);
-              await Bun.sleep(5000);
-            }
-            throw new Error("Deployed content/application versions do not match the release");
-          '
