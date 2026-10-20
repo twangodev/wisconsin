@@ -133,27 +133,14 @@ jobs:
         if: steps.worksheets.outputs.requiresR == 'false'
         run: echo "R_CACHE_ONLY=1" >> "$GITHUB_ENV"
       - run: bun run build
-      - name: Check that this commit is still current
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        id: current
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          current_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
-          if [ "$current_sha" = "$GITHUB_SHA" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Skipping superseded release $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          fi
       - name: Apply existing database migrations
-        if: steps.current.outputs.ready == 'true'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: bun run twiki exec -- tooling/wrangler.ts d1 migrations apply wisconsin --remote
         env: &cloudflare-credentials
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       - name: Deploy Worker and content
-        if: steps.current.outputs.ready == 'true'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: bun run deploy
         env: *cloudflare-credentials
       - name: Encrypt compiler cache
