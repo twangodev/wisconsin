@@ -156,18 +156,3 @@ jobs:
         with:
           path: .twiki/site/build/generated/compiler-cache.gpg
           key: twiki-compiler-encrypted-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
-
-  # Preserve the existing required check name while collecting every lane.
-  check:
-    if: always()
-    needs: [types, links, diagrams, build]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 2
-    steps:
-      - name: Require all checks
-        env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
-        run: |
-          for result in $RESULTS; do
-            test "$result" = success || exit 1
-          done
