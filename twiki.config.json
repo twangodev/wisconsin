@@ -4,6 +4,7 @@
   "discovery": "git",
   "publication": "policies",
   "site": {
+    "favicon": "favicon.ico",
     "name": "wisconsin",
     "url": "https://wisconsin.twango.dev",
     "title": "wisconsin",
