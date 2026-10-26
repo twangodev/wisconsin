@@ -65,6 +65,31 @@ During a system call, the process's registers are saved in the PCB.
   If printed interactive answers are unavailable, a worked answer may be added
   only with explicit study-answer provenance. Preserve source errata alongside
   corrections; never imply the corrected answer was printed in the original.
+- Keep the solution entirely inside its collapsed answer: code, completed
+  tables, filled-in signatures, and worked diagrams must not reveal the answer
+  in the question body. State any reconstructed study prompt or changed
+  assumption explicitly.
+
+## Consolidating existing material
+
+- Give each exam semester/version one canonical question-and-answer page.
+  Merge a matching question paper and key question by question, with the correct
+  answer and explanation directly beneath each prompt. Keep distinct versions
+  and separate practice exams identifiable.
+- Use the study page for correct answers, not recorded student selections,
+  grader point totals, or lists of unselected rubric alternatives. Preserve
+  personal grades and useful feedback in private `course-details.md` or a
+  clearly identified private record. An awarded score alone does not verify an
+  answer.
+- Preserve meaningful source ambiguities, accepted alternatives, and key
+  corrections beside the affected answer. Explain which result is correct and
+  which alternatives were only accepted for grading.
+- Keep provided reference sheets and question diagrams accessible. A figure
+  containing handwritten solutions can spoil self-testing; use a faithful clean
+  rendering where the original question can be reconstructed confidently.
+- Update the course map, exam hub, and all incoming links when removing a
+  superseded page. Check question/part counts, answer provenance, source figures,
+  and link destinations after the merge.
 
 ## Linking
 
