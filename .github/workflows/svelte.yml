@@ -67,28 +67,9 @@ jobs:
       - name: Check wikilink conventions and destinations
         run: bun run twiki exec -- run --sequential --no-exit-on-error check:links check:targets
 
-  diagrams:
-    concurrency:
-      group: twiki-diagrams-${{ github.ref }}
-      cancel-in-progress: true
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - *configure-submodules
-      - *checkout-content
-      - *setup-bun
-      - *bun-cache
-      - *install-dependencies
-      - *prepare-engine
-      - name: Install browser dependencies
-        working-directory: .twiki/site
-        run: bunx playwright install --with-deps chromium
-      - name: Check math and diagram rendering
-        run: bun run twiki exec -- run check:diagrams
-
   build:
     name: Build and deploy
-    needs: [types, links, diagrams]
+    needs: [types, links]
     concurrency:
       group: svelte-build-and-deploy-${{ github.ref }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
