@@ -84,6 +84,8 @@ jobs:
       - run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/*"
+          ln -s "$(command -v bun)" "$RUNNER_TEMP/bunx"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - *bun-cache
       - *install-dependencies
       - *prepare-engine
