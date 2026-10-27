@@ -74,15 +74,13 @@ jobs:
       group: svelte-build-and-deploy-${{ github.ref }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04
+    container: ghcr.io/twangodev/twiki-builder:latest
     timeout-minutes: 40
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'production' || 'validation' }}
-    env:
-      R_REQUIRE_PROFILE: "1"
     steps:
       - *configure-submodules
       - *checkout-content
-      - *setup-bun
       - *bun-cache
       - *install-dependencies
       - *prepare-engine
@@ -96,23 +94,6 @@ jobs:
         env: &cache-encryption
           BUILD_CACHE_KEY: ${{ secrets.BUILD_CACHE_KEY }}
         run: bun run twiki exec -- tooling/cache.ts restore
-      - name: Provision pinned worksheet fonts
-        timeout-minutes: 6
-        run: |
-          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends fonts-mathjax=2.7.9+dfsg-1 fonts-glyphicons-halflings=1.009~3.4.1+dfsg-3+deb12u1build0.24.04.1
-      - name: Verify restored worksheet coverage
-        id: worksheets
-        run: bun run twiki exec -- tooling/r-cache.ts preflight --github-output
-      - name: Install missing worksheet renderer
-        if: steps.worksheets.outputs.requiresR != 'false'
-        timeout-minutes: 6
-        run: |
-          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends r-base-core r-cran-knitr r-cran-car
-      - name: Enforce verified worksheet cache reuse
-        if: steps.worksheets.outputs.requiresR == 'false'
-        run: echo "R_CACHE_ONLY=1" >> "$GITHUB_ENV"
       - run: bun run build
       - name: Apply existing database migrations
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
