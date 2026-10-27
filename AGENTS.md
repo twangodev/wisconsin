@@ -50,6 +50,14 @@ Binaries get converted to markdown, reviewed, deleted — see
 Claude-read) and the full pipeline. Skip binaries course code uses (jars,
 datasets, sprites).
 
+Use the NVIDIA GPU by default for MinerU and other local conversion tools that
+support GPU acceleration. Verify CUDA access and select `cuda` explicitly where
+supported (`MINERU_DEVICE_MODE=cuda` for MinerU). If the sandbox blocks GPU access,
+retry with the required access before diagnosing a driver failure. Do not
+silently fall back to CPU; report the blocker if GPU execution remains
+unavailable. Slide decks still require
+visual review and synthesis as described in the conversion spec.
+
 Keep original input filenames, local paths, and recording export titles out of
 filed notes and indexes. Identify sources by descriptive title, author, or date;
 preserve citations and filenames that are part of assignment requirements.
