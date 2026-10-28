@@ -67,6 +67,7 @@ preserve citations and filenames that are part of assignment requirements.
 - One course per agent.
 - `bun run check:links` and `bun run build` must pass before committing site configuration or publishing changes.
 - Engine unit tests and type checks belong in `twangodev/twiki`. This repository has no local test suite; CI validates content links, builds, and deploys the notes.
+- Keep GitHub Actions declarative with single-line commands and no multiline YAML block scalars. Shared publishing behavior belongs in Twiki.
 - The publishing engine lives in `twangodev/twiki`; `.twiki/` is disposable generated state.
 - Don't touch `.python-version`, course `pyproject.toml`s, or run uv package
   commands inside course dirs — several courses are uv workspace members and
