@@ -21,24 +21,17 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - &setup-bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: "1.4.2"
-      - &bun-cache
+      - name: Reuse successful type validation
+        id: validation-cache
         uses: actions/cache@v6
         with:
-          path: ~/.bun/install/cache
-          key: twiki-bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
-          restore-keys: twiki-bun-${{ runner.os }}-${{ runner.arch }}-
-      - &install-dependencies
-        run: bun install --frozen-lockfile
-      - &prepare-engine
-        run: bun run twiki prepare
+          path: ${{ runner.temp }}/twiki-validation/types
+          key: twiki-types-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock', 'package.json', 'twiki.config.json', 'favicon.ico', '.github/workflows/svelte.yml', '.github/actions/**', '.github/scripts/**') }}
       - name: Check application and Worker types
-        env:
-          TWIKI_SKIP_CONTENT: "1"
-        run: bun run twiki exec -- run check:types
+        if: steps.validation-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/validate
+        with:
+          kind: types
 
   links:
     concurrency:
@@ -47,25 +40,22 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - &configure-submodules
-        run: git config --global submodule.fetchJobs 8
-      - &checkout-content
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+      - name: Identify the complete content snapshot
+        id: content
+        run: echo "tree=$(git rev-parse HEAD:content)" >> "$GITHUB_OUTPUT"
+      - name: Reuse successful link validation
+        id: validation-cache
+        uses: actions/cache@v6
         with:
-          fetch-depth: 0
-          submodules: recursive
-          token: ${{ secrets.PAT_TOKEN || github.token }}
-      - *setup-bun
-      - *bun-cache
-      - *install-dependencies
-      - *prepare-engine
-      - name: Install Lychee 0.24.2
-        run: |
-          mkdir -p .twiki/site/build/tools
-          curl -fsSL https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz -o "$RUNNER_TEMP/lychee.tar.gz"
-          tar -xzf "$RUNNER_TEMP/lychee.tar.gz" --strip-components=1 -C .twiki/site/build/tools lychee-x86_64-unknown-linux-gnu/lychee
+          path: ${{ runner.temp }}/twiki-validation/links
+          key: twiki-links-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock', 'package.json', 'twiki.config.json', '.gitmodules', '.github/workflows/svelte.yml', '.github/actions/**', '.github/scripts/**') }}-${{ steps.content.outputs.tree }}
       - name: Check wikilink conventions and destinations
-        run: bun run twiki exec -- run --sequential --no-exit-on-error check:links check:targets
+        if: steps.validation-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/validate
+        with:
+          kind: links
+          token: ${{ secrets.PAT_TOKEN || github.token }}
 
   build:
     name: Build and deploy
@@ -79,45 +69,55 @@ jobs:
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'production' || 'validation' }}
     steps:
-      - *configure-submodules
-      - *checkout-content
+      - run: git config --global submodule.fetchJobs 8
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN || github.token }}
       - run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/*"
-      - *bun-cache
-      - *install-dependencies
-      - *prepare-engine
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: twiki-bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: twiki-bun-${{ runner.os }}-${{ runner.arch }}-
+      - run: bun install --frozen-lockfile
+      - run: bun run twiki prepare
       - name: Restore encrypted compiler data
+        id: compiler-cache
         uses: actions/cache/restore@v6
         with:
           path: .twiki/site/build/generated/compiler-cache.gpg
-          key: twiki-compiler-encrypted-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: twiki-compiler-encrypted-v1-${{ runner.os }}-${{ runner.arch }}-
+          key: twiki-compiler-encrypted-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock', 'twiki.config.json', '.github/scripts/compiler-cache.ts') }}-${{ github.sha }}
+          restore-keys: |
+            twiki-compiler-encrypted-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock', 'twiki.config.json', '.github/scripts/compiler-cache.ts') }}-
+            twiki-compiler-encrypted-v2-${{ runner.os }}-${{ runner.arch }}-
+            twiki-compiler-encrypted-v1-${{ runner.os }}-${{ runner.arch }}-
       - name: Decrypt compiler data
         env: &cache-encryption
           BUILD_CACHE_KEY: ${{ secrets.BUILD_CACHE_KEY }}
-        run: bun run twiki exec -- tooling/cache.ts restore
+        run: bun .github/scripts/compiler-cache.ts restore
       - run: bun run build
-      - name: Apply existing database migrations
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        run: bun run twiki exec -- tooling/wrangler.ts d1 migrations apply wisconsin --remote
-        env: &cloudflare-credentials
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       - name: Deploy Worker and content
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        run: bun run deploy
-        env: *cloudflare-credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          bun run twiki exec -- tooling/wrangler.ts d1 migrations apply wisconsin --remote
+          bun run deploy
       - name: Encrypt compiler cache
         id: encrypted-cache
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.compiler-cache.outputs.cache-hit != 'true'
         continue-on-error: true
         env: *cache-encryption
-        run: bun run twiki exec -- tooling/cache.ts save
+        run: bun .github/scripts/compiler-cache.ts save
       - name: Save compiler cache
         if: steps.encrypted-cache.outputs.ready == 'true'
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
           path: .twiki/site/build/generated/compiler-cache.gpg
-          key: twiki-compiler-encrypted-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}

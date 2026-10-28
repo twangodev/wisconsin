@@ -1,0 +1,69 @@
+name: Validate Twiki
+description: Prepare the engine and run a validation group after a cache miss.
+
+inputs:
+  kind:
+    description: Validation group, either types or links.
+    required: true
+  token:
+    description: Token for checking out private course repositories.
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Configure parallel course checkout
+      if: inputs.kind == 'links'
+      shell: bash
+      run: git config --global submodule.fetchJobs 8
+    - name: Check out current course files
+      if: inputs.kind == 'links'
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 1
+        submodules: recursive
+        token: ${{ inputs.token }}
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: "1.4.2"
+    - uses: actions/cache@v6
+      with:
+        path: ~/.bun/install/cache
+        key: twiki-bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+        restore-keys: twiki-bun-${{ runner.os }}-${{ runner.arch }}-
+    - name: Prepare Twiki
+      shell: bash
+      run: |
+        bun install --frozen-lockfile
+        bun run twiki prepare
+    - name: Cache Lychee 0.24.2
+      if: inputs.kind == 'links'
+      id: lychee-cache
+      uses: actions/cache@v6
+      with:
+        path: .twiki/site/build/tools/lychee
+        key: lychee-0.24.2-${{ runner.os }}-${{ runner.arch }}
+    - name: Install Lychee 0.24.2
+      if: inputs.kind == 'links' && steps.lychee-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        mkdir -p .twiki/site/build/tools
+        curl -fsSL https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz -o "$RUNNER_TEMP/lychee.tar.gz"
+        tar -xzf "$RUNNER_TEMP/lychee.tar.gz" --strip-components=1 -C .twiki/site/build/tools lychee-x86_64-unknown-linux-gnu/lychee
+    - name: Validate and record success
+      shell: bash
+      env:
+        CHECK_KIND: ${{ inputs.kind }}
+      run: |
+        case "$CHECK_KIND" in
+          types)
+            bun test ./.github/scripts/compiler-cache.test.ts
+            TWIKI_SKIP_CONTENT=1 bun run twiki exec -- run check:types
+            ;;
+          links)
+            bun run twiki exec -- run --sequential --no-exit-on-error check:links check:targets
+            ;;
+          *) echo "Unknown validation group: $CHECK_KIND" >&2; exit 1 ;;
+        esac
+        mkdir -p "$RUNNER_TEMP/twiki-validation/$CHECK_KIND"
+        touch "$RUNNER_TEMP/twiki-validation/$CHECK_KIND/passed"
