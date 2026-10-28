@@ -13,26 +13,6 @@ env:
   FORCE_COLOR: "3"
 
 jobs:
-  types:
-    concurrency:
-      group: twiki-types-${{ github.ref }}
-      cancel-in-progress: true
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-      - name: Reuse successful type validation
-        id: validation-cache
-        uses: actions/cache@v6
-        with:
-          path: ${{ runner.temp }}/twiki-validation/types
-          key: twiki-types-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock', 'package.json', 'twiki.config.json', 'favicon.ico', '.github/workflows/svelte.yml', '.github/actions/**', '.github/scripts/**') }}
-      - name: Check application and Worker types
-        if: steps.validation-cache.outputs.cache-hit != 'true'
-        uses: ./.github/actions/validate
-        with:
-          kind: types
-
   links:
     concurrency:
       group: twiki-links-${{ github.ref }}
@@ -54,12 +34,11 @@ jobs:
         if: steps.validation-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/validate
         with:
-          kind: links
           token: ${{ secrets.PAT_TOKEN || github.token }}
 
   build:
     name: Build and deploy
-    needs: [types, links]
+    needs: links
     concurrency:
       group: svelte-build-and-deploy-${{ github.ref }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}

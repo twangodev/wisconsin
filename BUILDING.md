@@ -7,7 +7,7 @@ Cloudflare resource configuration in `twiki.config.json`.
 ```sh
 bun install --frozen-lockfile
 bun run dev
-bun run check
+bun run check:links
 bun run build
 bun run preview
 ```
@@ -17,7 +17,10 @@ verified cached previews are unavailable. Engine state, build outputs, and cache
 are generated under `.twiki/`; source notes and submodule pointers stay unchanged.
 
 `bun run deploy` uploads the existing Cloudflare build using environment-provided
-credentials. Production deployment remains in GitHub Actions after checks pass.
+credentials. Production deployment remains in GitHub Actions after link validation
+and the build succeed. Engine unit tests and type checks belong in
+`twangodev/twiki`; this repository's CI validates content links, builds, and deploys
+the notes.
 The engine dependency is pinned to an exact npm version; update it deliberately and
 validate the resulting publication before deploying.
 
