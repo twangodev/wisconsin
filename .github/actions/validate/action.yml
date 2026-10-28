@@ -26,27 +26,23 @@ runs:
         path: ~/.bun/install/cache
         key: twiki-bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
         restore-keys: twiki-bun-${{ runner.os }}-${{ runner.arch }}-
-    - name: Prepare Twiki
-      shell: bash
-      run: |
-        bun install --frozen-lockfile
-        bun run twiki prepare
+    - shell: bash
+      run: bun install --frozen-lockfile
     - name: Cache Lychee 0.24.2
       id: lychee-cache
       uses: actions/cache@v6
       with:
-        path: .twiki/site/build/tools/lychee
+        path: ${{ runner.temp }}/lychee
         key: lychee-0.24.2-${{ runner.os }}-${{ runner.arch }}
     - name: Install Lychee 0.24.2
       if: steps.lychee-cache.outputs.cache-hit != 'true'
       shell: bash
-      run: |
-        mkdir -p .twiki/site/build/tools
-        curl -fsSL https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz -o "$RUNNER_TEMP/lychee.tar.gz"
-        tar -xzf "$RUNNER_TEMP/lychee.tar.gz" --strip-components=1 -C .twiki/site/build/tools lychee-x86_64-unknown-linux-gnu/lychee
+      run: curl -fsSL https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz | tar -xz --strip-components=1 -C "$RUNNER_TEMP" lychee-x86_64-unknown-linux-gnu/lychee
     - name: Check wikilinks and destinations
       shell: bash
-      run: |
-        bun run twiki exec -- run --sequential --no-exit-on-error check:links check:targets
-        mkdir -p "$RUNNER_TEMP/twiki-validation/links"
-        touch "$RUNNER_TEMP/twiki-validation/links/passed"
+      env:
+        LYCHEE: ${{ runner.temp }}/lychee
+      run: bun run check:links
+    - name: Record successful validation
+      shell: bash
+      run: install -D /dev/null "$RUNNER_TEMP/twiki-validation/links/passed"
