@@ -53,8 +53,8 @@ These rules apply to every course. Content-type specs add only their exceptions.
 ## Links
 
 - Use wikilinks for local notes and figures, Markdown links for external sources.
-  Qualify ambiguous targets with the course path, such as
-  `[[fa26-cs577/lectures/lecture-04|Dynamic programming]]`.
+  Qualify ambiguous targets and all `index` links with the course path, such as
+  `[[fa26-cs577/lectures/index|Lectures]]`.
 - Link related lectures, assignments, readings, and exams where the connection
   helps studying. Link to a heading or embed a section when reusing an explanation.
 - Verify actual destinations, including headings and figures. Preserve useful
