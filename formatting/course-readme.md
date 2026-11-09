@@ -1,7 +1,7 @@
 # Course README
 
-`README.md` at the course root. It is the course's Map of Content: every note
-in the course should be reachable from it.
+Follow the [[README|general formatting standard]]. `README.md` at the course root
+is the course's Map of Content: every note should be reachable through it.
 
 ## Sections, in order
 
@@ -22,4 +22,5 @@ index there when condensing an older landing page. Unless a course has a broader
 reviewed publication policy, its `publish.yaml` includes only `README.md`, not
 nested project READMEs or course details.
 
-Keep it current: when filing new content, add its link here in the same commit.
+Link category hubs here and maintain their contents when filing new notes. Add
+direct links for material without a hub; avoid duplicating the hub's full catalog.

@@ -26,8 +26,9 @@ Most courses follow:
 lectures/  exams/  homework/  p<N>/ (projects)  a<N>/ (activities)
 ```
 
-Shared content types follow the specs in [`formatting/`](formatting/). Read
-the relevant spec before writing.
+Read the [general formatting standard](formatting/README.md), then the relevant
+content-type spec before writing. Single documents are named Markdown files;
+`index.md` is reserved for collection hubs. Keep importer narration out of notes.
 
 ## Markdown is Obsidian-first
 
