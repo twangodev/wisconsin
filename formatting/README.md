@@ -6,6 +6,7 @@ These rules apply to every course. Content-type specs add only their exceptions.
 
 - One document, one named Markdown file: `lecture-04.md`, `quiz-03.md`,
   `practice-exam-1.md`. Never wrap a single document in a folder with `index.md`.
+  Standalone navigation pages follow the same rule.
 - Use folders for collections and working projects. `index.md` is a collection
   hub; course and code-project entry pages use `README.md`.
 - Keep course numbering and required code layouts. Figures belong in the
