@@ -13,6 +13,6 @@
     "deploy": "twiki deploy"
   },
   "devDependencies": {
-    "@twango/twiki": "0.8.1"
+    "@twango/twiki": "0.8.2"
   }
 }

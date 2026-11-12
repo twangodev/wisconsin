@@ -65,7 +65,7 @@ jobs:
         id: compiler-cache
         uses: actions/cache/restore@v6
         with:
-          path: .twiki/site/build/generated/compiler-cache.gpg
+          path: build/twiki/site/build/generated/compiler-cache.gpg
           key: twiki-compiler-encrypted-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock', 'twiki.config.json') }}-${{ github.sha }}
           restore-keys: twiki-compiler-encrypted-v2-${{ runner.os }}-${{ runner.arch }}-
       - name: Decrypt compiler data
@@ -90,5 +90,5 @@ jobs:
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
-          path: .twiki/site/build/generated/compiler-cache.gpg
+          path: build/twiki/site/build/generated/compiler-cache.gpg
           key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
